@@ -46,6 +46,7 @@ before_script:
   - cp behat.local.yml.travis behat.local.yml
 
   # create new site, stubbing sendmail path with true to prevent delivery errors and manually resolving drush path
+  - cd ../
   - mysql -e 'create database bem_markup'
   - php -d sendmail_path=`which true` ~/.composer/vendor/bin/drush.php --yes core-quick-drupal --profile=testing --no-server --db-url=mysql://root:@127.0.0.1/bem_markup --enable=simpletest bem_markup
 
