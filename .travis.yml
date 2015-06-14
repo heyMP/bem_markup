@@ -60,7 +60,7 @@ before_script:
   - until netstat -an 2>/dev/null | grep '8080.*LISTEN'; do true; done
 
 script:
-  - cd ../tests/
+  - cd ../../tests
   - ls
   - ./bin/behat
   # Print log ~/phantomjs.log
