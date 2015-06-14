@@ -31,6 +31,22 @@ install:
 before_script:
   # navigate out of module directory to prevent blown stack by recursive module lookup
   - cd ../..
+  # find out what directory we are in
+  - ls
+
+  # Run selenium.
+  - wget http://selenium-release.storage.googleapis.com/2.45/selenium-server-standalone-2.45.0.jar
+  - java -jar selenium-server-standalone-2.45.0.jar -p 4444 > ~/selenium.log 2>&1 &
+  - sleep 5
+
+  # Run phantomJs.
+  - phantomjs --webdriver=4444 > ~/phantomjs.log 2>&1 &
+
+  # install behat
+  - cd tests/
+  - curl -sS https://getcomposer.org/installer | php
+  - php composer.phar install
+  - cp behat.local.yml.travis behat.local.yml
 
   # create new site, stubbing sendmail path with true to prevent delivery errors and manually resolving drush path
   - mysql -e 'create database bem_markup'
@@ -45,7 +61,12 @@ before_script:
   - drush runserver 127.0.0.1:8080 &
   - until netstat -an 2>/dev/null | grep '8080.*LISTEN'; do true; done
 
-script: drush test-run 'BEM Markup' --uri=http://127.0.0.1:8080
+script:
+  - cd ../tests/
+  - ls
+  - ./bin/behat
+  # Print log ~/phantomjs.log
+  - cat ~/phantomjs.log
 
 # # notify slack
 # notifications:
