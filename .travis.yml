@@ -61,7 +61,6 @@ before_script:
 
 script:
   - cd ../../tests
-  - ls
   - ./bin/behat
   # Print log ~/phantomjs.log
   - cat ~/phantomjs.log
