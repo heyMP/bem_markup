@@ -1,36 +1,53 @@
 language: php
 
 php:
-  - 5.3
-  - hhvm
-
-matrix:
-  fast_finish: true
-  allow_failures:
-    - php: hhvm
+  - 5.4
 
 mysql:
-  database: bem_markup
+  database: drupal
   username: root
   encoding: utf8
 
 before_install:
   - sudo apt-get update > /dev/null
+  - composer self-update
+
+  # Install grunt.
+  - npm install -g grunt-cli
+  - npm install -g bower
 
 install:
   # install php packages required for running a web server from drush on php 5.3
   - sudo apt-get install -y --force-yes php5-cgi php5-mysql
 
-  # add composer's global bin directory to the path
-  # see: https://github.com/drush-ops/drush#install---composer
+  # install drush
   - export PATH="$HOME/.composer/vendor/bin:$PATH"
-
-  # install drush globally
   - composer global require drush/drush:6.*
+  - phpenv rehash
 
 before_script:
-  # find out what directory we are in
-  - ls
+  - drush si bem_markup --db-url=mysql://root:@127.0.0.1/drupal --account-pass=admin --yes
+  - drush cc all --yes
+  - drush en simpletest -y
+
+  - cd ..
+
+  # Create Drush alias.
+  - cd tests
+  - cp aliases.drushrc.php ~/.drush/
+  - cp behat.local.yml.travis behat.local.yml
+  - composer install --prefer-source
+
+script:
+  # Create display.
+  - export DISPLAY=:99.0
+  - sh -e /etc/init.d/xvfb start
+  - sleep 3 # give xvfb some time to start
+
+  # start a web server on port 8080, run in the background; wait for initialization
+  - drush @bem_markup runserver 127.0.0.1:8080 &
+  - until netstat -an 2>/dev/null | grep '8080.*LISTEN'; do true; done
+
   # Run selenium.
   - wget http://selenium-release.storage.googleapis.com/2.45/selenium-server-standalone-2.45.0.jar
   - java -jar selenium-server-standalone-2.45.0.jar -p 4444 > ~/selenium.log 2>&1 &
@@ -39,32 +56,15 @@ before_script:
   # Run phantomJs.
   - phantomjs --webdriver=4444 > ~/phantomjs.log 2>&1 &
 
-  # install behat
+  # Run behat tests.
   - cd tests/
-  - curl -sS https://getcomposer.org/installer | php
-  - php composer.phar install
-  - cp behat.local.yml.travis behat.local.yml
-
-  # create new site, stubbing sendmail path with true to prevent delivery errors and manually resolving drush path
-  - cd ../
-  - mysql -e 'create database bem_markup'
-  - php -d sendmail_path=`which true` ~/.composer/vendor/bin/drush.php --yes core-quick-drupal --profile=testing --no-server --db-url=mysql://root:@127.0.0.1/bem_markup --enable=simpletest bem_markup
-
-  # reference and enable bem_markup in build site
-  - ln -s $(readlink -e $(cd -)) bem_markup/drupal/sites/all/modules/bem_markup
-  - cd bem_markup/drupal
-  - drush --yes pm-enable bem_markup
-
-  # start a web server on port 8080, run in the background; wait for initialization
-  - drush runserver 127.0.0.1:8080 &
-  - until netstat -an 2>/dev/null | grep '8080.*LISTEN'; do true; done
-
-script:
-  - cd ../../tests
   - ./bin/behat
+
   # Print log ~/phantomjs.log
   - cat ~/phantomjs.log
 
-# # notify slack
-# notifications:
-#   slack: psudug:4D72xSs8gOFgECLWaMFIba7V
+  # Print log ~/selenium.log
+  # - cat ~/selenium.log
+
+  # SimpleTest
+  - drush @bem_markup test-run "bem_markup" --uri=http://127.0.0.1:8080
