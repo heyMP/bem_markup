@@ -70,17 +70,20 @@ function bem_markup_preprocess_node(&$variables) {
  */
 function bem_markup_preprocess_field(&$variables) {
   $settings = field_info_instance($variables['element']['#entity_type'], $variables['element']['#field_name'], $variables['element']['#bundle']);
-  $base_class = _bem_markup_get_base_class($variables['element']['#bundle']);
-  $bem_class = $base_class . '__';
 
-  if (isset($settings['bem_markup_class'])) {
-    $bem_class .= str_replace(' ', '-', $settings['bem_markup_class']);
+  if (isset($variables['element']['#bundle'])) {
+    $base_class = _bem_markup_get_base_class($variables['element']['#bundle']);
+    $bem_class = $base_class . '__';
+
+    if (isset($settings['bem_markup_class'])) {
+      $bem_class .= str_replace(' ', '-', $settings['bem_markup_class']);
+    }
+    else {
+      $bem_class .= str_replace('_', '-', $variables['element']['#field_name']);
+    }
+    // Add the BEM class to the field classes.
+    array_unshift($variables['classes_array'], $bem_class);
   }
-  else {
-    $bem_class .= str_replace('_', '-', $variables['element']['#field_name']);
-  }
-  // Add the BEM class to the field classes.
-  array_unshift($variables['classes_array'], $bem_class);
 }
 
 /**
@@ -90,11 +93,16 @@ function _bem_markup_get_base_class($type) {
   $base_class = &drupal_static(__FUNCTION__);
 
   if (is_null($base_class)) {
+    // If this content type has a base class defined in the variable table
+    // then set the base class to that.
     $base_class = variable_get('bem_markup_base_class__' . $type, NULL);
+    // If there is no specified base class then use the content type's machine
+    // name
+    if (is_null($base_class) || $base_class == '') {
+      $base_class = str_replace('_', '-', $type);
+    }
+    // Clean up the formatting of the class.
     $base_class = _bem_markup_format_class($base_class);
-  }
-  else {
-    $base_class = str_replace('_', '-', $type);
   }
 
   return $base_class;
