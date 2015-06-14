@@ -26,11 +26,16 @@ install:
   - phpenv rehash
 
 before_script:
+  - cd ../
+  - drush dl drupal --drupal-project-rename=drupal
+  - ln -s $(readlink -e $(cd -)) drupal/sites/all/modules/bem_markup
+  - cd drupal
   - drush si bem_markup --db-url=mysql://root:@127.0.0.1/drupal --account-pass=admin --yes
   - drush cc all --yes
   - drush en simpletest -y
+  - drush en bem_markup -y
 
-  - cd ..
+  - cd ../bem_markup
 
   # Create Drush alias.
   - cd tests
