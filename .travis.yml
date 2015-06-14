@@ -1,80 +1,52 @@
 language: php
 
 php:
-  - 5.4
+  - 5.3
+  - hhvm
+
+matrix:
+  fast_finish: true
+  allow_failures:
+    - php: hhvm
 
 mysql:
-  database: drupal
+  database: bem_markup
   username: root
   encoding: utf8
 
 before_install:
   - sudo apt-get update > /dev/null
-  - composer self-update
-
-  # Install grunt.
-  - npm install -g grunt-cli
-  - npm install -g bower
 
 install:
   # install php packages required for running a web server from drush on php 5.3
   - sudo apt-get install -y --force-yes php5-cgi php5-mysql
 
-  # install drush
+  # add composer's global bin directory to the path
+  # see: https://github.com/drush-ops/drush#install---composer
   - export PATH="$HOME/.composer/vendor/bin:$PATH"
+
+  # install drush globally
   - composer global require drush/drush:6.*
-  - phpenv rehash
 
 before_script:
-  - cd /var/www
-  - drush dl drupal --destination=bemmarkup
-  - cd bemmarkup
-  - drush si bemmarkup --db-url=mysql://root:@127.0.0.1/drupal --account-pass=admin --yes
-  - drush cc all --yes
-  - drush en simpletest -y
-  - drush en bem_markup -y
+  # navigate out of module directory to prevent blown stack by recursive module lookup
+  - cd ../..
 
-  # Create Drush alias.
-  - cd tests
-  - cp aliases.drushrc.php ~/.drush/
-  - cp behat.local.yml.travis behat.local.yml
-  - composer install --prefer-source
+  # create new site, stubbing sendmail path with true to prevent delivery errors and manually resolving drush path
+  - mysql -e 'create database bem_markup'
+  - php -d sendmail_path=`which true` ~/.composer/vendor/bin/drush.php --yes core-quick-drupal --profile=testing --no-server --db-url=mysql://root:@127.0.0.1/bem_markup --enable=simpletest bem_markup
 
-script:
-  # Create display.
-  - export DISPLAY=:99.0
-  - sh -e /etc/init.d/xvfb start
-  - sleep 3 # give xvfb some time to start
+  # reference and enable bem_markup in build site
+  - ln -s $(readlink -e $(cd -)) bem_markup/drupal/sites/all/modules/bem_markup
+  - cd bem_markup/drupal
+  - drush --yes pm-enable bem_markup
 
   # start a web server on port 8080, run in the background; wait for initialization
-  - drush @bemmarkup runserver 127.0.0.1:8080 &
+  - drush runserver 127.0.0.1:8080 &
   - until netstat -an 2>/dev/null | grep '8080.*LISTEN'; do true; done
 
-  # Run client application.
-  - cd ../client
-  - npm install
-  - bower install
-  - cp config.travis.json config.json
-  - grunt serve > ~/grunt.log 2>&1 &
+script: drush test-run 'BEM Markup' --uri=http://127.0.0.1:8080
 
-  # Run selenium.
-  - wget http://selenium-release.storage.googleapis.com/2.45/selenium-server-standalone-2.45.0.jar
-  - java -jar selenium-server-standalone-2.45.0.jar -p 4444 > ~/selenium.log 2>&1 &
-  - sleep 5
-
-  # Run phantomJs.
-  - phantomjs --webdriver=4444 > ~/phantomjs.log 2>&1 &
-
-  # Run behat tests.
-  - cd ../tests
-  - ./bin/behat
-
-  # Print log ~/phantomjs.log
-  - cat ~/phantomjs.log
-
-  # Print log ~/selenium.log
-  # - cat ~/selenium.log
-
-  # SimpleTest
-  - drush @bemmarkup test-run "bemmarkup" --uri=http://127.0.0.1:8080
-t
+# # notify slack
+# notifications:
+#   slack: psudug:4D72xSs8gOFgECLWaMFIba7V
