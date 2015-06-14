@@ -29,7 +29,7 @@ before_script:
   - cd ../
   - pwd
   - drush dl drupal --drupal-project-rename=drupal
-  - cp bem_markup drupal/sites/all/modules
+  - cp -R bem_markup drupal/sites/all/modules
   - cd drupal
   - pwd
   - drush si bem_markup --db-url=mysql://root:@127.0.0.1/drupal --account-pass=admin --yes
