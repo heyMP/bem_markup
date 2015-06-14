@@ -6,5 +6,5 @@ This Module adds BEM style markup with the view modes to the classes array in yo
 ## Example
 
 ### Article Content Type
-``<article class="node node-article node-article--full">``
+``<article class="article__body">``
 
