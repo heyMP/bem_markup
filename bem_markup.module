@@ -6,13 +6,105 @@
  */
 
 /**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function bem_markup_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
+  $bem_class = $form['#instance']['bem_markup_class'];
+
+  $form['instance']['bem_markup_class'] = array(
+    '#type' => 'textfield',
+    '#title' => t('BEM Class'),
+    '#default_value' => $bem_class ? $bem_class : '',
+    '#description' => t('Secify this fields BEM class.'),
+  );
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function bem_markup_form_node_type_form_alter(&$form, &$form_state, $form_id) {
+  $type = $form['#node_type']->type;
+  $bem_base_class = variable_get('bem_markup_base_class__' . $type, array());
+
+  $form['bem_markup'] = array(
+    '#type' => 'fieldset',
+    '#title' => 'BEM Markup',
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+    '#group' => 'additional_settings',
+    '#description' => t('Add a custom BEM base class for this content type.'),
+  );
+  $form['bem_markup']['bem_markup_base_class'] = array(
+    '#type' => 'textfield',
+    '#title' => t('BEM Base Class'),
+    '#default_value' => $bem_base_class,
+    '#description' => t('Secify the BEM base class for this content type.'),
+  );
+
+  $form['#submit'][] = 'bem_markup_node_type_form_submit';
+}
+
+function bem_markup_node_type_form_submit($form, &$form_state) {
+  $bem_base_class = $form_state['values']['bem_markup_base_class'];
+  $type = $form_state['values']['type'];
+
+  variable_set('bem_markup_base_class__' . $type, $bem_base_class);
+}
+
+/**
  * Implements hook_preprocess_node().
  *
  * Add markup to the node template
  */
-function bem_markup_preprocess_node(&$vars) {
-  if (isset($vars['elements']['#view_mode'])) {
-    $view_mode = $vars['elements']['#view_mode'];
-    $vars['classes_array'][] = 'node-' . $vars['type'] . '--' . str_replace('_', '-', $view_mode);
+function bem_markup_preprocess_node(&$variables) {
+  $type = $variables['type'];
+  $bem_base_class = _bem_markup_get_base_class($type);
+
+  if ($bem_base_class) {
+    array_unshift($variables['classes_array'], $bem_base_class);
   }
 }
+
+/**
+ * Implementation of hook_preprocess_field().
+ */
+function bem_markup_preprocess_field(&$variables) {
+  $settings = field_info_instance($variables['element']['#entity_type'], $variables['element']['#field_name'], $variables['element']['#bundle']);
+  $base_class = _bem_markup_get_base_class($variables['element']['#bundle']);
+  $bem_class = $base_class . '__';
+
+  if (isset($settings['bem_markup_class'])) {
+    $bem_class .= str_replace(' ', '-', $settings['bem_markup_class']);
+  }
+  else {
+    $bem_class .= str_replace('_', '-', $variables['element']['#field_name']);
+  }
+  // Add the BEM class to the field classes.
+  array_unshift($variables['classes_array'], $bem_class);
+}
+
+/**
+ * Helper function to get the base class for a specific content type.
+ */
+function _bem_markup_get_base_class($type) {
+  $base_class = &drupal_static(__FUNCTION__);
+
+  if (is_null($base_class)) {
+    $base_class = variable_get('bem_markup_base_class__' . $type, NULL);
+    $base_class = _bem_markup_format_class($base_class);
+  }
+  else {
+    $base_class = str_replace('_', '-', $type);
+  }
+
+  return $base_class;
+}
+
+/**
+ * Helper function to format a class into BEM.
+ */
+function _bem_markup_format_class($class) {
+  $class = str_replace(' ', '-', $class);
+  return $class;
+}
+
