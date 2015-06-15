@@ -44,8 +44,11 @@ before_script:
   - cd behat
   - cp aliases.drushrc.php ~/.drush/
   - drush cc drush
+
+  # install composer dependancies
+  - curl -sS https://getcomposer.org/installer | php
+  - php composer.phar install
   - cp behat.local.yml.travis behat.local.yml
-  - composer install --prefer-source
 
 script:
   # Create display.
@@ -66,7 +69,6 @@ script:
   - phantomjs --webdriver=4444 > ~/phantomjs.log 2>&1 &
 
   # Run behat tests.
-  - cd behat/
   - ./bin/behat
 
   # Print log ~/phantomjs.log
