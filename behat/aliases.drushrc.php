@@ -379,5 +379,5 @@
 #    'root' => $aliases['dev']['root'],
 #  ) + $aliases['server'];
 $aliases['bem_markup'] = array(
- 'root' => '/home/travis/build/heyMP/bem_markup/drupal',
+ 'root' => '/home/travis/build/heyMP/drupal',
 );
