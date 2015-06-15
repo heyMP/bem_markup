@@ -32,7 +32,7 @@ before_script:
   - cp -R bem_markup drupal/sites/all/modules
   - cd drupal
   - pwd
-  - drush si bem_markup --db-url=mysql://root:@127.0.0.1/drupal --account-pass=admin --yes
+  - drush si --db-url=mysql://root:@127.0.0.1/drupal --account-pass=admin --yes
   - drush cc all --yes
   - drush en simpletest -y
   - drush en bem_markup -y
