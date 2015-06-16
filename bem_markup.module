@@ -9,13 +9,17 @@
  * Implements hook_form_FORM_ID_alter().
  */
 function bem_markup_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
-  $bem_class = $form['#instance']['bem_markup_class'];
+  $bem_class = '';
+
+  if (isset($form['#instance']['bem_markup_class'])) {
+    $bem_class = $form['#instance']['bem_markup_class'] ? $form['#instance']['bem_markup_class'] : '';
+  }
 
   $form['instance']['bem_markup_class'] = array(
     '#type' => 'textfield',
-    '#title' => t('BEM Class'),
-    '#default_value' => $bem_class ? $bem_class : '',
-    '#description' => t('Secify this fields BEM class.'),
+    '#title' => t('BEM Element Class'),
+    '#default_value' => $bem_class,
+    '#description' => t('Secify this fields BEM element class.'),
   );
 }
 
@@ -32,23 +36,25 @@ function bem_markup_form_node_type_form_alter(&$form, &$form_state, $form_id) {
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
     '#group' => 'additional_settings',
-    '#description' => t('Add a custom BEM base class for this content type.'),
+    '#description' => t('Add a custom BEM block base class for this content type.'),
   );
   $form['bem_markup']['bem_markup_base_class'] = array(
     '#type' => 'textfield',
-    '#title' => t('BEM Base Class'),
+    '#title' => t('BEM Block Class'),
     '#default_value' => $bem_base_class,
-    '#description' => t('Secify the BEM base class for this content type.'),
+    '#description' => t('Secify the BEM block class for this content type.'),
   );
 
   $form['#submit'][] = 'bem_markup_node_type_form_submit';
 }
 
 function bem_markup_node_type_form_submit($form, &$form_state) {
-  $bem_base_class = $form_state['values']['bem_markup_base_class'];
-  $type = $form_state['values']['type'];
+  if (isset($form_state['values']['bem_markup_base_class'])) {
+    $bem_base_class = $form_state['values']['bem_markup_base_class'];
+    $type = $form_state['values']['type'];
 
-  variable_set('bem_markup_base_class__' . $type, $bem_base_class);
+    variable_set('bem_markup_base_class__' . $type, $bem_base_class);
+  }
 }
 
 /**
