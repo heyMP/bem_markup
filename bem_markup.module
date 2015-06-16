@@ -59,9 +59,14 @@ function bem_markup_node_type_form_submit($form, &$form_state) {
 function bem_markup_preprocess_node(&$variables) {
   $type = $variables['type'];
   $bem_base_class = _bem_markup_get_base_class($type);
-
+  // Add the Block class
   if ($bem_base_class) {
-    array_unshift($variables['classes_array'], $bem_base_class);
+    $variables['classes_array'][] = $bem_base_class;
+  }
+  // Add the viewmode as a modifier.
+  if (isset($variables['elements']['#view_mode'])) {
+    $view_mode = $variables['elements']['#view_mode'];
+    $variables['classes_array'][] = $bem_base_class . '--' . str_replace('_', '-', $view_mode);
   }
 }
 
